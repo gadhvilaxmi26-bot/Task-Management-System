@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container d-flex justify-content-center mt-5">
+    <div class="card p-5 shadow-lg" style="max-width: 600px; width: 100%;">
+        <h3 class="fw-bold mb-4 text-center text-primary">{{ title|default:"Manage Details" }}</h3>
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label fw-semibold">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary w-100 mt-3 py-2 fw-bold shadow">Save Changes</button>
+            <a href="javascript:history.back()" class="btn btn-light w-100 mt-2">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<style>
+    input, select, textarea { 
+        display: block; width: 100%; padding: 0.5rem 0.75rem; 
+        font-size: 1rem; color: #212529; background-color: #fff; 
+        border: 1px solid #ced4da; border-radius: 8px;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold">Active Projects</h3>
+    {% if user.role.lower == 'manager' or user.is_superuser or user.role.lower == 'admin' %}
+        <a href="{% url 'project_create' %}" class="btn btn-primary shadow-sm">+ New Project</a>
+    {% endif %}
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for project in projects %}
+    <div class="col">
+        <div class="card h-100 p-3 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-dark">{{ project.name }}</h5>
+                <p class="card-text text-muted small">{{ project.description|truncatewords:15 }}</p>
+                
+                <div class="mt-4 d-flex justify-content-between align-items-center">
+                    <a href="{% url 'project_detail' project.pk %}" class="btn btn-sm btn-dark">View Detail</a>
+                    
+                    {% if user == project.manager or user.is_superuser or user.role.lower == 'admin' %}
+                        <a href="{% url 'task_create' project.id %}" class="btn btn-sm btn-outline-success">
+                            <i class="bi bi-plus"></i> Task
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
