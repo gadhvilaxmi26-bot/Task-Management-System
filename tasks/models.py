@@ -1,6 +1,9 @@
 from django.db import models
-from django.conf import settings
+from django.conf import settings  
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
+User = get_user_model()
 
 class Project(models.Model):
 
@@ -9,7 +12,7 @@ class Project(models.Model):
         ('ON_HOLD', 'On Hold'),
         ('COMPLETED', 'Completed'),
     ]
-
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='TODO')
     name = models.CharField(max_length=200)
     description = models.TextField()
 
@@ -103,4 +106,15 @@ class ProjectMember(models.Model):
 
  def __str__(self):
     return f"{self.user.username} - {self.project.name}"
+ 
+ 
+ 
+class ActivityLog(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='logs')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    action = models.CharField(max_length=255) 
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.action}"
 

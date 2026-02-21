@@ -7,11 +7,10 @@ User = get_user_model()
 class ProjectForm(forms.ModelForm):
     class Meta:
         model = Project
-        # 'manager' ko yahan se hata diya hai kyunki wo hum views mein auto-add karte hain
         fields = ['name', 'description', 'status', 'start_date', 'end_date']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Project ka naam...'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Kuch details...'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Project Name...'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Description...'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -23,8 +22,12 @@ class ProjectMemberForm(forms.ModelForm):
         fields = ['user', 'role_in_project']
         widgets = {
             'user': forms.Select(attrs={'class': 'form-select'}),
-            'role_in_project': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Backend Developer'}),
+            'role_in_project': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Frontend Dev'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['user'].queryset = User.objects.filter(role__iexact='developer')
 
 class TaskForm(forms.ModelForm):
     class Meta:
@@ -37,4 +40,16 @@ class TaskForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
             'priority': forms.Select(attrs={'class': 'form-select'}),
             'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+        
+    def clean_due_date(self):
+        due_date = self.cleaned_data.get('due_date')
+        return due_date
+
+class TaskStatusUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['status']
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-select'}),
         }

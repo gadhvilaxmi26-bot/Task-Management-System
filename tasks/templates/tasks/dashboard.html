@@ -1,44 +1,85 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container-fluid">
-    <h3 class="fw-bold mb-4">Dashboard Overview</h3>
-    <div class="row g-4 mb-4">
+<div class="container mt-4">
+    <h2 class="fw-bold mb-4">Welcome back, {{ user.username }}! 👋</h2>
+
+    <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card p-3 border-start border-primary border-4 text-center">
-                <p class="text-muted mb-1">Total Tasks</p>
-                <h2 class="fw-bold">{{ summary.total }}</h2>
+            <div class="card bg-primary text-white shadow-sm border-0">
+                <div class="card-body">
+                    <h6>Total Tasks</h6>
+                    <h2 class="fw-bold">{{ summary.total }}</h2>
+                </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card p-3 border-start border-warning border-4 text-center">
-                <p class="text-muted mb-1">In Progress</p>
-                <h2 class="fw-bold">{{ summary.in_progress }}</h2>
+            <div class="card bg-warning text-dark shadow-sm border-0">
+                <div class="card-body">
+                    <h6>In Progress</h6>
+                    <h2 class="fw-bold">{{ summary.in_progress }}</h2>
+                </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card p-3 border-start border-success border-4 text-center">
-                <p class="text-muted mb-1">Completed</p>
-                <h2 class="fw-bold">{{ summary.done }}</h2>
+            <div class="card bg-success text-white shadow-sm border-0">
+                <div class="card-body">
+                    <h6>Completed</h6>
+                    <h2 class="fw-bold">{{ summary.done }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow-sm border-0">
+                <div class="card-body">
+                    <h6>To Do</h6>
+                    <h2 class="fw-bold">{{ summary.todo }}</h2>
+                </div>
             </div>
         </div>
     </div>
-    <div class="card p-4">
-        <h5 class="fw-bold mb-3">Recent Tasks Assigned to You</h5>
-        <table class="table table-hover align-middle">
-            <thead class="table-light text-muted">
-                <tr><th>Task</th><th>Project</th><th>Status</th><th>Action</th></tr>
-            </thead>
-            <tbody>
-                {% for task in tasks %}
-                <tr>
-                    <td><strong>{{ task.title }}</strong></td>
-                    <td><span class="badge bg-light text-dark border">{{ task.project.name }}</span></td>
-                    <td><span class="badge {% if task.status == 'DONE' %}bg-success-subtle text-success{% else %}bg-warning-subtle text-warning{% endif %}">{{ task.status }}</span></td>
-                    <td><a href="{% url 'task_update' task.pk %}" class="btn btn-sm btn-outline-primary">Update</a></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="col-md-6 mb-4">
+    <div class="card p-3 shadow-sm h-100">
+        <h5 class="fw-bold border-bottom pb-2 mb-3">Project Progress (%)</h5>
+        {% for project in user_projects %}
+        <div class="mb-3">
+            <div class="d-flex justify-content-between">
+                <span class="small fw-bold">{{ project.name }}</span>
+                <span class="small">{{ project.progress_percentage }}%</span>
+            </div>
+            <div class="progress" style="height: 10px;">
+                <div class="progress-bar bg-success" role="progressbar" 
+                     style="width: {{ project.progress_percentage }}%" 
+                     aria-valuenow="{{ project.progress_percentage }}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted text-center">No projects found.</p>
+        {% endfor %}
+    </div>
+</div>
+        <div class="col-md-6 mb-4">
+            <div class="card p-3 shadow-sm h-100">
+                <h5 class="fw-bold border-bottom pb-2 mb-3">Recent Tasks</h5>
+                <ul class="list-group list-group-flush">
+                    {% for task in tasks %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <div>
+                            <span class="fw-bold">{{ task.title }}</span><br>
+                            <small class="text-muted">{{ task.project.name }}</small>
+                        </div>
+                        <span class="badge rounded-pill {% if task.status == 'DONE' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ task.status }}
+                        </span>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center">No tasks available.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
