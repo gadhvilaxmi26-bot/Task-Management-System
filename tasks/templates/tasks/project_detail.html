@@ -17,6 +17,29 @@
 
 <div class="row">
     <div class="col-md-8">
+        <div class="card p-3 mb-3 border-0 shadow-sm bg-light">
+            <form method="GET" class="row g-2">
+                <div class="col-md-5">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search tasks by title..." value="{{ search_query }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">All Status</option>
+                        <option value="TODO">To Do</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="IN_REVIEW">In Review</option>
+                        <option value="DONE">Done</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm btn-primary w-100 text-white">Filter</button>
+                </div>
+                <div class="col-md-2">
+                    <a href="{% url 'project_detail' project.pk %}" class="btn btn-sm btn-outline-secondary w-100">Reset</a>
+                </div>
+            </form>
+        </div>
+
         <div class="card p-3 shadow-sm border-0">
             <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
                 <h5 class="fw-bold">Project Tasks</h5>
@@ -28,7 +51,7 @@
                 <thead class="text-muted">
                     <tr>
                         <th>Title</th>
-                        <th>Owner</th>
+                        <th>Priority</th> <th>Owner</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -37,6 +60,11 @@
                     {% for task in tasks %}
                     <tr>
                         <td>{{ task.title }}</td>
+                        <td>
+                            <span class="badge {% if task.priority == 'CRITICAL' %}bg-danger{% elif task.priority == 'HIGH' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                {{ task.priority }}
+                            </span>
+                        </td>
                         <td>{{ task.assigned_to.username|default:"Unassigned" }}</td>
                         <td>
                             <span class="badge rounded-pill {% if task.status == 'DONE' %}bg-success{% elif task.status == 'IN_PROGRESS' %}bg-primary{% else %}bg-secondary{% endif %}">
@@ -44,8 +72,8 @@
                             </span>
                         </td>
                         <td>
-                            <a href="{% url 'update_task_status' task.id %}" class="btn btn-sm btn-outline-info me-2" title="Update Status">
-                                <i class="bi bi-arrow-repeat"></i> Status
+                            <a href="{% url 'update_task_status' task.id %}" class="text-info me-2" title="Update Status">
+                                <i class="bi bi-arrow-repeat"></i>
                             </a>
                             <a href="{% url 'task_update' task.pk %}" class="text-primary me-2">
                                 <i class="bi bi-pencil-square"></i>
@@ -59,7 +87,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center text-muted">No tasks added yet.</td>
+                        <td colspan="5" class="text-center text-muted">No tasks found.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -82,7 +110,7 @@
                 <li class="d-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded shadow-sm">
                     <span><i class="bi bi-person-circle me-2 text-primary"></i> {{ member.user.username }}</span>
                     {% if user == project.manager or user.role.lower == 'admin' %}
-                    <a href="{% url 'remove_member' member.pk %}" class="btn btn-link text-danger btn-sm p-0">Remove</a>
+                    <a href="{% url 'remove_member' member.pk %}" class="btn btn-link text-danger btn-sm p-0 text-decoration-none">Remove</a>
                     {% endif %}
                 </li>
                 {% empty %}
@@ -91,25 +119,26 @@
             </ul>
         </div>
 
-       <div class="card p-3 shadow-sm border-0">
-    <h5 class="fw-bold mb-3 border-bottom pb-2">🚀 Recent Activity</h5>
-    <div class="list-group list-group-flush">
-        {% for log in activities %}
-            <div class="list-group-item px-0 py-2 border-0 border-bottom">
-                <div class="d-flex w-100 justify-content-between align-items-center">
-                    <span class="fw-bold text-primary small">
-                        <i class="bi bi-person-fill"></i> 
-                        {{ log.user.username|capfirst }}
-                    </span>
-                    <small class="text-muted" style="font-size: 0.75rem;">
-                        {{ log.created_at|timesince }} ago
-                    </small>
+        <div class="card p-3 shadow-sm border-0">
+            <h5 class="fw-bold mb-3 border-bottom pb-2">🚀 Recent Activity</h5>
+            <div class="list-group list-group-flush">
+                {% for log in activities %}
+                <div class="list-group-item px-0 py-2 border-0 border-bottom">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <span class="fw-bold text-primary small">
+                            {{ log.user.username|capfirst }}
+                        </span>
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            {{ log.created_at|timesince }} ago
+                        </small>
+                    </div>
+                    <p class="mb-0 small text-secondary mt-1">{{ log.action }}</p>
                 </div>
-                <p class="mb-0 small text-secondary mt-1">{{ log.action }}</p>
+                {% empty %}
+                <p class="text-muted small text-center">No activities recorded yet.</p>
+                {% endfor %}
             </div>
-        {% empty %}
-            <p class="text-muted small text-center">No activities recorded yet.</p>
-        {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %}

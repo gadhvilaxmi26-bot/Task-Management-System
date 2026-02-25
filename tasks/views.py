@@ -4,7 +4,22 @@ from .models import Project, Task, ProjectMember, ActivityLog
 from django.http import HttpResponseForbidden
 from django.contrib.auth import get_user_model
 from .forms import TaskForm, ProjectMemberForm, TaskStatusUpdateForm, ProjectForm
+from django.db.models import Q
+from django.contrib import messages
+from django.contrib.auth.forms import UserCreationForm
 User = get_user_model()
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Account created for {username}! You can now login.')
+            return redirect('login')
+    else:
+        form = UserCreationForm()
+    return render(request, 'users/register.html', {'form': form})
 
 @login_required
 def dashboard(request):
@@ -92,13 +107,35 @@ def project_delete(request, pk):
 def project_detail(request, pk):
     project = get_object_or_404(Project, pk=pk)
     members = ProjectMember.objects.filter(project=project)
+    
     tasks = Task.objects.filter(project=project)
-    activities = ActivityLog.objects.filter(project=project).order_by('-created_at')[:10]
+    
+    search_query = request.GET.get('search', '')
+    status_filter = request.GET.get('status', '')       # <--- Ye line add ki
+    priority_filter = request.GET.get('priority', '')   # <--- Ye line bhi add ki
+    
+    if search_query:
+        tasks = tasks.filter(
+            Q(title__icontains=search_query) | 
+            Q(description__icontains=search_query)
+        )
+    
+    if status_filter:
+        tasks = tasks.filter(status=status_filter)
+
+    if priority_filter:
+        tasks = tasks.filter(priority=priority_filter)
+    
+    activities = ActivityLog.objects.filter(project=project).order_by('-created_at')[:5]
+    
     context = {
         'project': project,
         'tasks': tasks,
         'members': members,
         'activities': activities,
+        'search_query': search_query,
+        'status_filter': status_filter,   
+        'priority_filter': priority_filter,
     }
     return render(request, 'tasks/project_detail.html', context)
 @login_required
@@ -183,10 +220,12 @@ def update_task_status(request, task_id):
 @login_required
 def task_delete(request, pk):
     task = get_object_or_404(Task, pk=pk)
-    p_id = task.project.id
-    task.delete()
-    return redirect('project_detail', pk=p_id)
-from django.contrib import messages
+    project_id = task.project.id
+    if request.method == 'POST':
+        task.delete()
+        messages.success(request, "Task deleted successfully!")
+        return redirect('project_detail', pk=project_id)
+    return render(request, 'tasks/task_confirm_delete.html', {'object': task})
 @login_required
 def remove_member(request, pk):
     member = get_object_or_404(ProjectMember, id=pk)
