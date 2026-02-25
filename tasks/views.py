@@ -7,19 +7,9 @@ from .forms import TaskForm, ProjectMemberForm, TaskStatusUpdateForm, ProjectFor
 from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm
-User = get_user_model()
+from django.utils import timezone
 
-def register(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            messages.success(request, f'Account created for {username}! You can now login.')
-            return redirect('login')
-    else:
-        form = UserCreationForm()
-    return render(request, 'users/register.html', {'form': form})
+User = get_user_model()
 
 @login_required
 def dashboard(request):
@@ -47,6 +37,8 @@ def dashboard(request):
         done = project.tasks.filter(status='DONE').count()
         project.progress_percentage = int((done / total) * 100) if total > 0 else 0
 
+    overdue_tasks = tasks.filter(due_date__lt=timezone.now().date()).exclude(status='DONE') 
+    
     return render(request, 'tasks/dashboard.html', {
         'tasks': tasks.order_by('-created_at')[:5], 
         'summary': summary,

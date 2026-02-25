@@ -14,5 +14,5 @@ urlpatterns = [
     path('task/<int:pk>/delete/', views.task_delete, name='task_delete'),
     path('member/<int:pk>/remove/', views.remove_member, name='remove_member'),
     path('project/<int:pk>/add-member/', views.add_project_member, name='add_project_member'),
-# urls.py
-path('task/<int:task_id>/update-status/', views.update_task_status, name='update_task_status'),]
+    path('task/<int:task_id>/update-status/', views.update_task_status, name='update_task_status'),
+]

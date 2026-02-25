@@ -33,6 +33,7 @@ class Task(models.Model):
     STATUS_CHOICES = [
         ('TODO', 'To Do'),
         ('IN_PROGRESS', 'In Progress'),
+        ('IN_REVIEW', 'In Review'),
         ('DONE', 'Done'),
     ]
     PRIORITY_CHOICES = [
@@ -66,7 +67,6 @@ class Task(models.Model):
         return f"{self.title} - {self.project.name}"
 
 class ProjectMember(models.Model):
-    # Space hata diya gaya hai niche
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='members')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     role_in_project = models.CharField(max_length=50, default="Developer")
@@ -76,8 +76,6 @@ class ProjectMember(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.project.name}"
-
-# --- NEW MODELS (Score badhane ke liye zaroori) ---
 
 class Comment(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='comments')
@@ -101,4 +99,5 @@ class ActivityLog(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user} - {self.action}"
+        username = self.user.username if self.user else "System"
+        return f"{username} - {self.action}"

@@ -1,6 +1,7 @@
 from django import forms
 from .models import Project, Task, ProjectMember
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -44,6 +45,8 @@ class TaskForm(forms.ModelForm):
         
     def clean_due_date(self):
         due_date = self.cleaned_data.get('due_date')
+        if due_date and due_date < timezone.now().date():
+            raise forms.ValidationError("The due date cannot be in the past!")
         return due_date
 
 class TaskStatusUpdateForm(forms.ModelForm):
