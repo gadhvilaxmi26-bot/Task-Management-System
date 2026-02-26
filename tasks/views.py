@@ -15,16 +15,17 @@ User = get_user_model()
 def dashboard(request):
     user = request.user
     role = str(user.role).lower()
+    tasks = Task.objects.none()
+    user_projects = Project.objects.none()
     if role == 'admin':
         tasks = Task.objects.all()
-        projects = Project.objects.all()
+        user_projects = Project.objects.all()
     elif role == 'manager':
         tasks = Task.objects.filter(project__manager=user)
-        projects = Project.objects.filter(manager=user)
+        user_projects = Project.objects.filter(manager=user)
     else: 
         tasks = Task.objects.filter(assigned_to=user)
-        projects = Project.objects.filter(member__user=user).distinct()
-
+        user_projects = Project.objects.filter(members__user=user).distinct()
     summary = {
         'total': tasks.count(),
         'todo': tasks.filter(status='TODO').count(),
@@ -32,7 +33,7 @@ def dashboard(request):
         'done': tasks.filter(status='DONE').count(),
     }
 
-    for project in projects:
+    for project in user_projects:
         total = project.tasks.count()
         done = project.tasks.filter(status='DONE').count()
         project.progress_percentage = int((done / total) * 100) if total > 0 else 0
@@ -42,20 +43,21 @@ def dashboard(request):
     return render(request, 'tasks/dashboard.html', {
         'tasks': tasks.order_by('-created_at')[:5], 
         'summary': summary,
-        'user_projects': projects
+        'user_projects': user_projects, 
+        'overdue_tasks': overdue_tasks
     })
 
 @login_required
 def project_list(request):
     role = str(request.user.role).lower()
+
     if role == 'admin':
         projects = Project.objects.all()
     elif role == 'manager':
         projects = Project.objects.filter(manager=request.user)
     else: 
-        projects = Project.objects.filter(member__user=request.user).distinct()
+        projects = Project.objects.filter(members__user=request.user).distinct()   
     return render(request, 'tasks/project_list.html', {'projects': projects})
-
 @login_required
 def project_create(request):
     if str(request.user.role).lower() not in ['admin', 'manager']:
@@ -103,8 +105,8 @@ def project_detail(request, pk):
     tasks = Task.objects.filter(project=project)
     
     search_query = request.GET.get('search', '')
-    status_filter = request.GET.get('status', '')       # <--- Ye line add ki
-    priority_filter = request.GET.get('priority', '')   # <--- Ye line bhi add ki
+    status_filter = request.GET.get('status', '')      
+    priority_filter = request.GET.get('priority', '')   
     
     if search_query:
         tasks = tasks.filter(
@@ -236,3 +238,7 @@ def remove_member(request, pk):
         messages.error(request, "You don't have permission to remove members.")
         
     return redirect('project_detail', pk=project_id)
+def index(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard') 
+    return render(request, 'index.html')

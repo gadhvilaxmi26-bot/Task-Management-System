@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
-
+from tasks import views as task_views
 urlpatterns = [
+    path('', task_views.index, name='index'),
     path('admin/', admin.site.urls),
-    path('',include('users.urls')),
-    path('', include('tasks.urls')),
+    path('users/',include('users.urls')),
+    path('tasks/', include('tasks.urls')),
 ]

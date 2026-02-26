@@ -1,7 +1,8 @@
-from django.contrib.auth.views import LoginView
-from django.urls import reverse_lazy
-from .forms import UserRegistrationForm
 from django.shortcuts import render, redirect
+from django.contrib.auth import login  
+from django.contrib.auth.views import LoginView
+from .forms import UserRegistrationForm
+from django.urls import reverse_lazy
 
 class CustomLoginView(LoginView):
     template_name = 'users/login.html'
@@ -20,7 +21,7 @@ def register(request):
             form = UserRegistrationForm(request.POST)
             if form.is_valid():
                 user = form.save()
-                LoginView(request, user) 
+                login(request, user) 
                 return redirect('dashboard')
         else:
             form = UserRegistrationForm()
