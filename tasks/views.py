@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Project, Task, ProjectMember, ActivityLog
+from .models import Project, Task, ProjectMember, ActivityLog, Comment, Notification
 from django.http import HttpResponseForbidden
 from django.contrib.auth import get_user_model
 from .forms import TaskForm, ProjectMemberForm, TaskStatusUpdateForm, ProjectForm
@@ -8,6 +8,8 @@ from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
+from rest_framework import viewsets
+from .serializers import TaskSerializer
 
 User = get_user_model()
 
@@ -15,8 +17,7 @@ User = get_user_model()
 def dashboard(request):
     user = request.user
     role = str(user.role).lower()
-    tasks = Task.objects.none()
-    user_projects = Project.objects.none()
+    
     if role == 'admin':
         tasks = Task.objects.all()
         user_projects = Project.objects.all()
@@ -26,10 +27,12 @@ def dashboard(request):
     else: 
         tasks = Task.objects.filter(assigned_to=user)
         user_projects = Project.objects.filter(members__user=user).distinct()
+
     summary = {
         'total': tasks.count(),
         'todo': tasks.filter(status='TODO').count(),
         'in_progress': tasks.filter(status='IN_PROGRESS').count(),
+        'in_review': tasks.filter(status='IN_REVIEW').count(), 
         'done': tasks.filter(status='DONE').count(),
     }
 
@@ -44,7 +47,8 @@ def dashboard(request):
         'tasks': tasks.order_by('-created_at')[:5], 
         'summary': summary,
         'user_projects': user_projects, 
-        'overdue_tasks': overdue_tasks
+        'overdue_tasks': overdue_tasks,
+        'chart_data': [summary['todo'], summary['in_progress'], summary['in_review'], summary['done']]
     })
 
 @login_required
@@ -58,6 +62,7 @@ def project_list(request):
     else: 
         projects = Project.objects.filter(members__user=request.user).distinct()   
     return render(request, 'tasks/project_list.html', {'projects': projects})
+
 @login_required
 def project_create(request):
     if str(request.user.role).lower() not in ['admin', 'manager']:
@@ -132,20 +137,34 @@ def project_detail(request, pk):
         'priority_filter': priority_filter,
     }
     return render(request, 'tasks/project_detail.html', context)
+
 @login_required
 def add_project_member(request, pk):
     project = get_object_or_404(Project, id=pk)
+    
+    if not (request.user == project.manager or request.user.is_superuser):
+        messages.error(request, "Only the manager can add members.")
+        return redirect('project_detail', pk=pk)
+
     if request.method == "POST":
         form = ProjectMemberForm(request.POST)
         if form.is_valid():
             member = form.save(commit=False)
             member.project = project
             member.save()
+        
+            ActivityLog.objects.create(
+                user=request.user, 
+                project=project, 
+                action=f"added {member.user.username} as {member.role_in_project} to the team"
+            )
+            messages.success(request, f"{member.user.username} added successfully!")
             return redirect('project_detail', pk=pk)
     else:
         form = ProjectMemberForm()
         already_in = ProjectMember.objects.filter(project=project).values_list('user_id', flat=True)
-        form.fields['user'].queryset = User.objects.filter(role__iexact='developer').exclude(id__in=already_in)
+        form.fields['user'].queryset = User.objects.exclude(id__in=already_in)
+        
     return render(request, 'tasks/add_member_form.html', {'form': form, 'project': project})
 
 @login_required
@@ -158,6 +177,7 @@ def task_create(request, project_id):
             task.project = project
             task.created_by = request.user
             task.save()
+            ActivityLog.objects.create(user=request.user, project=project, action=f"created a new task: {task.title}")
             return redirect('project_detail', pk=project.id)
     else:
         form = TaskForm()
@@ -187,22 +207,28 @@ def task_update(request, pk):
     else:
         form = TaskForm(instance=task)
     return render(request, 'tasks/task_form.html', {'form': form, 'task': task, 'title': 'Update Task'})
+
 @login_required
 def update_task_status(request, task_id):
     task = get_object_or_404(Task, id=task_id)
-    
     if request.method == 'POST':
         old_status = task.get_status_display()
         form = TaskStatusUpdateForm(request.POST, instance=task)
         if form.is_valid():
             form.save()
             new_status = task.get_status_display()
-            
             ActivityLog.objects.create(
                 project=task.project,
                 user=request.user,
                 action=f"Updated task '{task.title}' status from {old_status} to {new_status}"
             )
+            notify_user = task.project.manager 
+            Notification.objects.create(
+                user=task.created_by,
+                message=f"Task '{task.title}' is now {new_status}. Please review it.",
+                is_read=False
+            )
+
             return redirect('project_detail', pk=task.project.id)
     else:
         form = TaskStatusUpdateForm(instance=task)
@@ -211,15 +237,25 @@ def update_task_status(request, task_id):
         'form': form,
         'task': task
     })
+
 @login_required
 def task_delete(request, pk):
     task = get_object_or_404(Task, pk=pk)
-    project_id = task.project.id
-    if request.method == 'POST':
+    
+    if not (request.user == task.project.manager or request.user.is_superuser):
+        messages.error(request, "You don't have permission to delete this task.")
+        return redirect('project_detail', pk=task.project.pk)
+
+    if request.method == "POST": 
+        project_id = task.project.id
+        task_title = task.title
         task.delete()
-        messages.success(request, "Task deleted successfully!")
+        ActivityLog.objects.create(user=request.user, project_id=project_id, action=f"deleted task: {task_title}")
+        messages.success(request, "Task deleted successfully.")
         return redirect('project_detail', pk=project_id)
-    return render(request, 'tasks/task_confirm_delete.html', {'object': task})
+    
+    return render(request, 'task_confirm_delete.html', {'task': task})
+
 @login_required
 def remove_member(request, pk):
     member = get_object_or_404(ProjectMember, id=pk)
@@ -238,7 +274,25 @@ def remove_member(request, pk):
         messages.error(request, "You don't have permission to remove members.")
         
     return redirect('project_detail', pk=project_id)
+
 def index(request):
     if request.user.is_authenticated:
         return redirect('dashboard') 
     return render(request, 'index.html')
+
+@login_required
+def add_comment(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+    if request.method == "POST":
+        content = request.POST.get('content')
+        if content:
+            Comment.objects.create(task=task, author=request.user, content=content)
+            if task.assigned_to and task.assigned_to != request.user:
+                Notification.objects.create(
+                    user=task.assigned_to,
+                    message=f"{request.user.username} commented on your task: {task.title}"
+                )
+    return redirect('project_detail', pk=task.project.id)
+class TaskViewSet(viewsets.ModelViewSet):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer

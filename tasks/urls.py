@@ -15,4 +15,8 @@ urlpatterns = [
     path('member/<int:pk>/remove/', views.remove_member, name='remove_member'),
     path('project/<int:pk>/add-member/', views.add_project_member, name='add_project_member'),
     path('task/<int:task_id>/update-status/', views.update_task_status, name='update_task_status'),
+    path('task/<int:task_id>/comment/', views.add_comment, name='add_comment'),
+    path('task/<int:task_id>/comment/', views.add_comment, name='add_comment'),
 ]
+
+

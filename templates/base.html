@@ -45,8 +45,7 @@
         <ul class="nav nav-pills flex-column mb-auto">
             {% if user.is_authenticated %}
                 <li>
-                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
                     </a>
                 </li>
                 <li>
