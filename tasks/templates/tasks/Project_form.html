@@ -1,28 +1,50 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container d-flex justify-content-center mt-5">
-    <div class="card p-5 shadow-lg" style="max-width: 600px; width: 100%;">
-        <h3 class="fw-bold mb-4 text-center text-primary">{{ title|default:"Manage Details" }}</h3>
-        <form method="post">
-            {% csrf_token %}
-            {% for field in form %}
-            <div class="mb-3">
-                <label class="form-label fw-semibold">{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}<div class="text-danger small">{{ field.errors }}</div>{% endif %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                <div class="card-header bg-primary py-4 text-center border-0">
+                    <h3 class="fw-bold text-white mb-0"><i class="bi bi-folder-plus me-2"></i>{{ title|default:"Project Details" }}</h3>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {% for field in form %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-secondary small">{{ field.label }}</label>
+                            <div class="custom-field">
+                                {{ field }}
+                            </div>
+                            {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors }}</div>{% endif %}
+                        </div>
+                        {% endfor %}
+
+                        <div class="d-grid gap-3 mt-5">
+                            <button type="submit" class="btn btn-primary py-2 fw-bold rounded-pill shadow">
+                                <i class="bi bi-check-circle me-2"></i>Save Project
+                            </button>
+                            <a href="{% url 'project_list' %}" class="btn btn-light py-2 rounded-pill border fw-semibold text-muted">
+                                <i class="bi bi-arrow-left me-2"></i>Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
             </div>
-            {% endfor %}
-            <button type="submit" class="btn btn-primary w-100 mt-3 py-2 fw-bold shadow">Save Changes</button>
-            <a href="javascript:history.back()" class="btn btn-light w-100 mt-2">Cancel</a>
-        </form>
+        </div>
     </div>
 </div>
 
 <style>
     input, select, textarea { 
-        display: block; width: 100%; padding: 0.5rem 0.75rem; 
-        font-size: 1rem; color: #212529; background-color: #fff; 
-        border: 1px solid #ced4da; border-radius: 8px;
+        display: block; width: 100%; padding: 0.75rem 1rem; 
+        font-size: 1rem; color: #334155; background-color: #f8fafc; 
+        border: 2px solid #e2e8f0; border-radius: 12px !important;
+        transition: 0.3s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+        border-color: #0d6efd; background-color: #fff; outline: none;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
     }
 </style>
 {% endblock %}

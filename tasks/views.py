@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Project, Task, ProjectMember, ActivityLog, Comment, Notification
+from .models import Project, Task, ProjectMember, ActivityLog, Comment, Notification,TaskAttachment
 from django.http import HttpResponseForbidden
 from django.contrib.auth import get_user_model
 from .forms import TaskForm, ProjectMemberForm, TaskStatusUpdateForm, ProjectForm
@@ -10,6 +10,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
 from rest_framework import viewsets
 from .serializers import TaskSerializer
+from django.contrib.auth.models import User
 
 User = get_user_model()
 
@@ -170,14 +171,24 @@ def add_project_member(request, pk):
 @login_required
 def task_create(request, project_id):
     project = get_object_or_404(Project, id=project_id)
+    
     if request.method == "POST":
-        form = TaskForm(request.POST)
+        form = TaskForm(request.POST, request.FILES) 
         if form.is_valid():
             task = form.save(commit=False)
             task.project = project
             task.created_by = request.user
             task.save()
-            ActivityLog.objects.create(user=request.user, project=project, action=f"created a new task: {task.title}")
+
+            files = request.FILES.getlist('attachments') 
+            for f in files:
+                TaskAttachment.objects.create(task=task, file=f)
+
+            ActivityLog.objects.create(
+                user=request.user, 
+                project=project, 
+                action=f"created a new task: {task.title}"
+            )
             return redirect('project_detail', pk=project.id)
     else:
         form = TaskForm()
@@ -186,27 +197,45 @@ def task_create(request, project_id):
             form.fields['assigned_to'].queryset = User.objects.filter(id__in=member_ids)
         else:
             form.fields['assigned_to'].queryset = User.objects.filter(role__iexact='developer')
-    return render(request, 'tasks/task_form.html', {'form': form, 'project': project, 'title': 'Create Task'})
+
+    return render(request, 'tasks/task_form.html', {
+        'form': form, 
+        'project': project, 
+        'title': 'Create Task'
+    })
 
 @login_required
 def task_update(request, pk):
     task = get_object_or_404(Task, pk=pk)
+    
     if request.user != task.assigned_to and request.user != task.project.manager and str(request.user.role).lower() != 'admin':
         return HttpResponseForbidden()
+    
     if request.method == "POST":
-        form = TaskForm(request.POST, instance=task)
+        form = TaskForm(request.POST, request.FILES, instance=task) 
         if form.is_valid():
-            form.save()
+            updated_task = form.save()
+
+            files = request.FILES.getlist('attachments')
+            for f in files:
+                TaskAttachment.objects.create(task=updated_task, file=f)
+
             ActivityLog.objects.create(
                 project=task.project,
                 user=request.user,
                 action=f"Edited task details for '{task.title}'"
             )
-            
             return redirect('project_detail', pk=task.project.id)
     else:
         form = TaskForm(instance=task)
-    return render(request, 'tasks/task_form.html', {'form': form, 'task': task, 'title': 'Update Task'})
+        
+    return render(request, 'tasks/task_form.html', {
+        'form': form,
+        'task': task,
+        'project': task.project,
+        'title': 'Update Task'
+    })
+
 
 @login_required
 def update_task_status(request, task_id):
@@ -237,6 +266,7 @@ def update_task_status(request, task_id):
         'form': form,
         'task': task
     })
+
 
 @login_required
 def task_delete(request, pk):

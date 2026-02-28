@@ -1,32 +1,80 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h3 class="fw-bold">Active Projects</h3>
-    {% if user.role.lower == 'manager' or user.is_superuser or user.role.lower == 'admin' %}
-        <a href="{% url 'project_create' %}" class="btn btn-primary shadow-sm">+ New Project</a>
-    {% endif %}
-</div>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    {% for project in projects %}
-    <div class="col">
-        <div class="card h-100 p-3 shadow-sm border-0">
-            <div class="card-body">
-                <h5 class="card-title fw-bold text-dark">{{ project.name }}</h5>
-                <p class="card-text text-muted small">{{ project.description|truncatewords:15 }}</p>
+{% block content %}
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mb-5 p-4 bg-white shadow-sm" style="border-radius: 20px; border-left: 6px solid #6366f1;">
+        <div>
+            <h3 class="fw-bold mb-1 text-dark">Active Projects</h3>
+            <p class="text-muted small mb-0">You have {{ projects|length }} projects currently in progress.</p>
+        </div>
+        {% if user.role.lower == 'manager' or user.is_superuser or user.role.lower == 'admin' %}
+            <a href="{% url 'project_create' %}" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow">
+                <i class="bi bi-plus-circle me-2"></i>New Project
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for project in projects %}
+        <div class="col">
+            <div class="card h-100 border-0 shadow-hover position-relative overflow-hidden" style="border-radius: 24px; transition: transform 0.3s ease;">
+                <div style="height: 6px; background: linear-gradient(90deg, #6366f1, #a855f7);"></div>
                 
-                <div class="mt-4 d-flex justify-content-between align-items-center">
-                    <a href="{% url 'project_detail' project.pk %}" class="btn btn-sm btn-dark">View Detail</a>
-                    
-                    {% if user == project.manager or user.is_superuser or user.role.lower == 'admin' %}
-                        <a href="{% url 'task_create' project.id %}" class="btn btn-sm btn-outline-success">
-                            <i class="bi bi-plus"></i> Task
-                        </a>
-                    {% endif %}
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded-3">
+                            <i class="bi bi-folder2-open text-primary fs-4"></i>
+                        </div>
+                        <span class="badge bg-light text-primary border border-primary border-opacity-25 rounded-pill px-3">Active</span>
+                    </div>
+
+                    <h5 class="card-title fw-bold text-dark mb-2">{{ project.name }}</h5>
+                    <p class="card-text text-muted small mb-4" style="height: 45px; overflow: hidden;">
+                        {{ project.description|truncatewords:15 }}
+                    </p>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between small fw-bold mb-1">
+                            <span>Completion</span>
+                            <span class="text-primary">{{ project.progress_percentage|default:"0" }}%</span>
+                        </div>
+                        <div class="progress rounded-pill" style="height: 8px; background: #f1f5f9;">
+                            <div class="progress-bar bg-primary rounded-pill" style="width: {{ project.progress_percentage|default:'10' }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto">
+                        <div class="d-flex align-items-center">
+                            <img src="https://ui-avatars.com/api/?name={{ project.manager.username }}&background=random" class="rounded-circle me-2" width="30">
+                            <span class="small text-muted fw-semibold">{{ project.manager.username|truncatechars:10 }}</span>
+                        </div>
+                        
+                        <div class="btn-group">
+                            <a href="{% url 'project_detail' project.pk %}" class="btn btn-dark btn-sm rounded-start-pill px-3">View</a>
+                            {% if user == project.manager or user.is_superuser or user.role.lower == 'admin' %}
+                                <a href="{% url 'task_create' project.id %}" class="btn btn-outline-primary btn-sm rounded-end-pill px-3" title="Add Task">
+                                    <i class="bi bi-plus-lg"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <img src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png" width="100" class="opacity-25 mb-3">
+            <h5 class="text-muted">No projects found yet.</h5>
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
+
+<style>
+    .shadow-hover:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    }
+    .card { background: white; }
+</style>
 {% endblock %}

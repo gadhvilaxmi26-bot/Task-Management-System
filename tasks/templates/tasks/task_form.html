@@ -1,11 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-    <h2>{{ title }}</h2>
-    <form method="post" class="card p-4 shadow">
-        {% csrf_token %}
-        {{ form.as_p }} <button type="submit" class="btn btn-primary">Save Task</button>
-        <a href="{% url 'project_list' %}" class="btn btn-secondary">Cancel</a>
-    </form>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                <div class="card-header bg-success py-4 text-center border-0 text-white">
+                    <h3 class="fw-bold mb-0"><i class="bi bi-clipboard-plus me-2"></i>{{ title|default:"Manage Task" }}</h3>
+                    <small class="opacity-75">Assigning to: {{ project.name }}</small>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" enctype="multipart/form-data"> {% csrf_token %}
+                        {% for field in form %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-secondary small">{{ field.label }}</label>
+                            <div class="custom-field">
+                                {{ field }}
+                            </div>
+                            {% if field.errors %}<div class="text-danger small mt-1">{{ field.errors }}</div>{% endif %}
+                        </div>
+                        {% endfor %}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-secondary small">Add Attachments</label>
+                            <input type="file" name="attachments" class="form-control" multiple style="padding: 0.5rem 1rem;">
+                            <small class="text-muted" style="font-size: 11px;">You can select multiple files (Images, PDFs, etc.)</small>
+                        </div>
+
+                        <div class="d-grid gap-3 mt-5">
+                            <button type="submit" class="btn btn-success py-2 fw-bold rounded-pill shadow">
+                                <i class="bi bi-plus-circle me-2"></i>Save Task
+                            </button>
+                            <a href="{% url 'project_detail' project.pk %}" class="btn btn-light py-2 rounded-pill border fw-semibold text-muted">
+                               <i class="bi bi-arrow-left me-2"></i>Back to Project Detail
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    input, select, textarea { 
+        display: block; width: 100%; padding: 0.75rem 1rem; 
+        font-size: 1rem; color: #334155; background-color: #f8fafc; 
+        border: 2px solid #e2e8f0; border-radius: 12px !important;
+        transition: 0.3s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+        border-color: #198754; background-color: #fff; outline: none;
+        box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.1);
+    }
+    /* File input ke liye special styling */
+    input[type="file"] {
+        padding: 10px;
+        background: #fff;
+        border: 2px dashed #e2e8f0;
+    }
+</style>
 {% endblock %}

@@ -3,97 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TMS Pro | Management Suite</title>
+    <title>TaskFlow Pro | Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; overflow-x: hidden; }
-        .sidebar { min-height: 100vh; background: #1a1d20; color: #fff; width: 240px; position: fixed; transition: 0.3s; }
-        .main-content { margin-left: 240px; padding: 25px; min-height: 100vh; }
+        :root { --primary: #6366f1; --dark: #0f172a; --bg: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--dark); overflow-x: hidden; }
         
-        /* Nav Links Styling */
-        .nav-link { 
-            color: #a0a0a0 !important; 
-            padding: 12px 20px; 
-            border-radius: 8px; 
-            margin: 4px 15px; 
-            transition: 0.3s; 
-            display: flex;
-            align-items: center;
-        }
-        .nav-link i { font-size: 1.1rem; }
-        .nav-link:hover, .nav-link.active { background: #343a40; color: #fff !important; }
+        /* Sidebar Glass Effect */
+        .sidebar { width: 280px; height: 100vh; background: var(--dark); position: fixed; z-index: 1000; transition: 0.3s; padding: 20px; }
+        .sidebar .brand { font-size: 1.5rem; font-weight: 700; color: white; padding: 20px; display: flex; align-items: center; gap: 10px; }
         
-        /* Navbar Styling */
-        .top-nav { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .nav-link { color: #94a3b8 !important; padding: 12px 15px; border-radius: 12px; margin-bottom: 5px; font-weight: 500; transition: 0.3s; }
+        .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.1); color: white !important; }
+        .nav-link.active { background: var(--primary) !important; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4); }
+        .nav-link i { font-size: 1.2rem; }
+
+        /* Main Content Styling */
+        .main-content { margin-left: 280px; padding: 40px; min-height: 100vh; }
         
-        /* Scrollbar for Sidebar */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #343a40; border-radius: 10px; }
+        /* Card & UI Elements */
+        .glass-card { background: white; border-radius: 24px; border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 10px 15px -3px rgba(0,0,0,0.03); padding: 30px; }
+        .btn-primary { background: var(--primary); border: none; border-radius: 12px; padding: 10px 24px; font-weight: 600; transition: 0.3s; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4); }
+
+        @media (max-width: 992px) { .sidebar { margin-left: -280px; } .main-content { margin-left: 0; } }
     </style>
 </head>
 <body>
 
-    <div class="sidebar d-flex flex-column p-3">
-        <h3 class="text-center py-3 text-primary fw-bold">
-            <i class="bi bi-rocket-takeoff"></i> TMS PRO
-        </h3>
-        <hr class="text-secondary">
-        
-        <ul class="nav nav-pills flex-column mb-auto">
+    <aside class="sidebar">
+        <div class="brand"><i class="bi bi-rocket-takeoff-fill text-primary"></i> TMS PRO</div>
+        <nav class="nav flex-column mt-4">
+            <a href="{% url 'index' %}" class="nav-link {% if request.resolver_match.url_name == 'index' %}active{% endif %}">
+                <i class="bi bi-house-door me-2"></i> Home
+            </a>
             {% if user.is_authenticated %}
-                <li>
-                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a href="{% url 'project_list' %}" class="nav-link {% if request.resolver_match.url_name == 'project_list' %}active{% endif %}">
-                        <i class="bi bi-stack me-2"></i> Projects
-                    </a>
-                </li>
+            <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-grid-1x2 me-2"></i> Dashboard
+            </a>
+            <a href="{% url 'project_list' %}" class="nav-link {% if 'project' in request.path %}active{% endif %}">
+                <i class="bi bi-kanban me-2"></i> Projects
+            </a>
             {% endif %}
-        </ul>
+        </nav>
 
-        <div class="mt-auto px-3 pb-3">
+        <div class="mt-auto pt-4 border-top border-secondary border-opacity-25">
             {% if user.is_authenticated %}
                 <form action="{% url 'logout' %}" method="post">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-outline-danger w-100 btn-sm d-flex align-items-center justify-content-center">
-                        <i class="bi bi-power me-2"></i> Logout
-                    </button>
+                    <button type="submit" class="btn btn-outline-danger w-100 rounded-4">Logout</button>
                 </form>
             {% else %}
-                <a href="{% url 'login' %}" class="btn btn-primary w-100 btn-sm">Login</a>
+                <a href="{% url 'login' %}" class="btn btn-primary w-100 mb-2">Login</a>
+                <a href="{% url 'register' %}" class="btn btn-outline-light w-100 rounded-4 btn-sm">Sign Up</a>
             {% endif %}
         </div>
-    </div>
+    </aside>
 
-    <div class="main-content">
-        <nav class="navbar navbar-expand-lg top-nav mb-4 px-4 py-2">
-            <div class="container-fluid p-0">
-                <span class="navbar-brand mb-0 h1 text-muted small">
-                    <i class="bi bi-person-circle me-1"></i> 
-                    Welcome, <span class="text-dark fw-bold">{{ user.username }}</span>
-                </span>
-                <div class="ms-auto">
-                    <span class="badge bg-light text-primary border">{{ user.role|default:"User" }}</span>
-                </div>
-            </div>
-        </nav>
-
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-
+    <main class="main-content">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
