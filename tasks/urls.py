@@ -17,6 +17,8 @@ urlpatterns = [
     path('task/<int:task_id>/update-status/', views.update_task_status, name='update_task_status'),
     path('task/<int:task_id>/comment/', views.add_comment, name='add_comment'),
     path('task/<int:task_id>/comment/', views.add_comment, name='add_comment'),
+    path('notification/read/<int:pk>/', views.mark_as_read, name='mark_as_read'), 
 ]
+
 
 

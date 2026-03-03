@@ -29,6 +29,8 @@ def dashboard(request):
         tasks = Task.objects.filter(assigned_to=user)
         user_projects = Project.objects.filter(members__user=user).distinct()
 
+    notifications = Notification.objects.filter(user=user, is_read=False).order_by('-created_at')
+    
     summary = {
         'total': tasks.count(),
         'todo': tasks.filter(status='TODO').count(),
@@ -38,19 +40,33 @@ def dashboard(request):
     }
 
     for project in user_projects:
-        total = project.tasks.count()
-        done = project.tasks.filter(status='DONE').count()
-        project.progress_percentage = int((done / total) * 100) if total > 0 else 0
+        all_project_tasks = project.tasks.all() if hasattr(project, 'tasks') else project.task_set.all()
+        total = all_project_tasks.count()
 
+        if total > 0:
+            total_points = 0
+            for t in all_project_tasks:
+                if t.status == 'DONE': total_points += 100
+                elif t.status == 'IN_REVIEW': total_points += 70
+                elif t.status == 'IN_PROGRESS': total_points += 30
+                else: total_points += 5
+            project.progress_percentage = int(total_points / total)
+        else:
+            project.progress_percentage = 0
+       
     overdue_tasks = tasks.filter(due_date__lt=timezone.now().date()).exclude(status='DONE') 
     
-    return render(request, 'tasks/dashboard.html', {
+    context = {
         'tasks': tasks.order_by('-created_at')[:5], 
         'summary': summary,
         'user_projects': user_projects, 
         'overdue_tasks': overdue_tasks,
+        'notifications': notifications,
         'chart_data': [summary['todo'], summary['in_progress'], summary['in_review'], summary['done']]
-    })
+    }
+    
+    return render(request, 'tasks/dashboard.html', context)
+
 
 @login_required
 def project_list(request):
@@ -106,8 +122,15 @@ def project_delete(request, pk):
 @login_required
 def project_detail(request, pk):
     project = get_object_or_404(Project, pk=pk)
+
+    is_member = ProjectMember.objects.filter(project=project, user=request.user).exists()
+    is_manager = (project.manager == request.user)
+    is_admin = (str(request.user.role).lower() == 'admin')
+
+    if not (is_manager or is_admin or is_member):
+        return HttpResponseForbidden("Access Denied: You do not have permission to view this project.")
+
     members = ProjectMember.objects.filter(project=project)
-    
     tasks = Task.objects.filter(project=project)
     
     search_query = request.GET.get('search', '')
@@ -126,6 +149,12 @@ def project_detail(request, pk):
     if priority_filter:
         tasks = tasks.filter(priority=priority_filter)
     
+    total_tasks = tasks.count()
+    completed_tasks = tasks.filter(status='DONE').count()
+    progress_percent = 0
+    if total_tasks > 0:
+        progress_percent = int((completed_tasks / total_tasks) * 100)
+    
     activities = ActivityLog.objects.filter(project=project).order_by('-created_at')[:5]
     
     context = {
@@ -136,6 +165,12 @@ def project_detail(request, pk):
         'search_query': search_query,
         'status_filter': status_filter,   
         'priority_filter': priority_filter,
+        'is_manager': is_manager or is_admin,
+         'progress_percent': progress_percent,
+        'total_tasks': total_tasks,
+        'completed_tasks': completed_tasks,        
+                 
+    
     }
     return render(request, 'tasks/project_detail.html', context)
 
@@ -240,25 +275,35 @@ def task_update(request, pk):
 @login_required
 def update_task_status(request, task_id):
     task = get_object_or_404(Task, id=task_id)
+    project = task.project
+
+    if not (request.user == task.assigned_to or request.user == project.manager or request.user.is_superuser):
+        messages.error(request, "You are not authorized to update this task status.")
+        return redirect('project_detail', pk=project.id)
+
     if request.method == 'POST':
         old_status = task.get_status_display()
         form = TaskStatusUpdateForm(request.POST, instance=task)
+        
         if form.is_valid():
             form.save()
             new_status = task.get_status_display()
-            ActivityLog.objects.create(
-                project=task.project,
-                user=request.user,
-                action=f"Updated task '{task.title}' status from {old_status} to {new_status}"
-            )
-            notify_user = task.project.manager 
-            Notification.objects.create(
-                user=task.created_by,
-                message=f"Task '{task.title}' is now {new_status}. Please review it.",
-                is_read=False
-            )
 
-            return redirect('project_detail', pk=task.project.id)
+            ActivityLog.objects.create(
+                project=project,
+                user=request.user,
+                action=f"Updated status of '{task.title}' from {old_status} to {new_status}"
+            )
+            
+            if request.user != project.manager:
+                Notification.objects.create(
+                    user=project.manager,  
+                    message=f"Task '{task.title}' is now {new_status}. Updated by {request.user.username}.",
+                    is_read=False
+                )
+
+            messages.success(request, f"Task status updated to {new_status} successfully!")
+            return redirect('project_detail', pk=project.id)
     else:
         form = TaskStatusUpdateForm(instance=task)
     
@@ -266,7 +311,6 @@ def update_task_status(request, task_id):
         'form': form,
         'task': task
     })
-
 
 @login_required
 def task_delete(request, pk):
@@ -326,3 +370,10 @@ def add_comment(request, task_id):
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
+
+@login_required
+def mark_as_read(request, pk):
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
+    notification.is_read = True
+    notification.save()
+    return redirect('dashboard')   

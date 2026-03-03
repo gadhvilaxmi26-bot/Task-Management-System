@@ -7,9 +7,6 @@
             <h2 class="fw-bold mb-1">Welcome back, {{ user.username }}! 👋</h2>
             <p class="text-muted small">Here's what's happening with your projects today.</p>
         </div>
-        <button class="btn btn-primary rounded-pill px-4 shadow-sm">
-            <i class="bi bi-plus-lg me-2"></i>New Task
-        </button>
     </div>
 
     <div class="row g-3 mb-4">
@@ -71,7 +68,7 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-lg-7 mb-3">
+        <div class="col-lg-8 mb-3">
             <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 24px;">
                 <h5 class="fw-bold mb-4">
                     <i class="bi bi-graph-up-arrow text-primary me-2"></i> Task Analytics
@@ -82,24 +79,29 @@
             </div>
         </div>
 
-        <div class="col-lg-5 mb-3">
+        <div class="col-lg-4 mb-3">
             <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 24px;">
-                <h5 class="fw-bold mb-4 text-danger">
-                    <i class="bi bi-clock-history me-2"></i> Critical Overdue
-                </h5>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-bell text-warning me-2"></i> Notifications</h5>
+                    {% if notifications.exists %}
+                    <span class="badge rounded-pill bg-danger shadow-sm">{{ notifications.count }} New</span>
+                    {% endif %}
+                </div>
                 <div class="overflow-auto" style="max-height: 300px;">
-                    {% for task in overdue_tasks %}
-                    <div class="d-flex align-items-center p-3 mb-2 bg-danger bg-opacity-10 rounded-4 border-start border-4 border-danger">
-                        <div class="flex-grow-1">
-                            <div class="fw-bold text-dark">{{ task.title }}</div>
-                            <small class="text-danger fw-semibold"><i class="bi bi-calendar-x me-1"></i>Due: {{ task.due_date }}</small>
+                    {% for note in notifications %}
+                    <div class="p-3 mb-2 bg-light rounded-4 border-0 position-relative">
+                        <div class="d-flex justify-content-between">
+                            <p class="mb-1 small fw-bold text-dark pe-4">{{ note.message }}</p>
+                            <a href="{% url 'mark_as_read' note.id %}" class="text-primary position-absolute end-0 top-0 mt-3 me-3">
+                                <i class="bi bi-check2-circle fs-5"></i>
+                            </a>
                         </div>
-                        <span class="badge bg-danger rounded-pill">LATE</span>
+                        <small class="text-muted" style="font-size: 10px;">{{ note.created_at|timesince }} ago</small>
                     </div>
                     {% empty %}
                     <div class="text-center py-5">
-                        <i class="bi bi-shield-check text-success fs-1"></i>
-                        <p class="text-muted mt-2">All caught up! No late tasks.</p>
+                        <i class="bi bi-chat-left-dots text-muted fs-1 opacity-25"></i>
+                        <p class="text-muted small mt-2">No new notifications.</p>
                     </div>
                     {% endfor %}
                 </div>
@@ -108,28 +110,49 @@
     </div>
 
     <div class="row">
-        <div class="col-md-6 mb-4">
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 24px;">
+                <h5 class="fw-bold mb-4 text-danger">
+                    <i class="bi bi-clock-history me-2"></i> Critical Overdue
+                </h5>
+                <div class="overflow-auto" style="max-height: 350px;">
+                    {% for task in overdue_tasks %}
+                    <div class="d-flex align-items-center p-3 mb-2 bg-danger bg-opacity-10 rounded-4 border-start border-4 border-danger">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold text-dark small">{{ task.title }}</div>
+                            <small class="text-danger fw-semibold" style="font-size: 10px;">Due: {{ task.due_date }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-4">All good!</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
             <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 24px;">
                 <h5 class="fw-bold mb-4">Project Milestones</h5>
                 {% for project in user_projects %}
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="fw-bold">{{ project.name }}</span>
-                        <span class="badge bg-light text-dark shadow-sm">{{ project.progress_percentage }}%</span>
+                        <span class="fw-bold small">{{ project.name }}</span>
+                        <span class="badge bg-light text-dark shadow-sm" style="font-size: 10px;">{{ project.progress_percentage }}%</span>
                     </div>
-                    <div class="progress rounded-pill" style="height: 12px; background: #f1f5f9;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" 
-                             style="width: {{ project.progress_percentage }}%">
+                    <div class="progress rounded-pill shadow-sm" style="height: 10px; background: #f1f5f9;">
+                        <div class="progress-bar bg-primary" role="progressbar" 
+                             style="width: {{ project.progress_percentage }}%;" 
+                             aria-valuenow="{{ project.progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
                         </div>
                     </div>
                 </div>
                 {% empty %}
-                <p class="text-muted text-center py-4">Start a project to see progress.</p>
+                <p class="text-muted text-center py-4">No active projects.</p>
                 {% endfor %}
             </div>
         </div>
 
-        <div class="col-md-6 mb-4">
+        <div class="col-md-4 mb-4">
             <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 24px;">
                 <h5 class="fw-bold mb-4">Recent Task Updates</h5>
                 <div class="list-group list-group-flush">
@@ -137,17 +160,19 @@
                     <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 mb-2">
                         <div class="d-flex align-items-center">
                             <div class="bg-light rounded-circle p-2 me-3">
-                                <i class="bi bi-briefcase text-primary"></i>
+                                <i class="bi bi-briefcase text-primary small"></i>
                             </div>
                             <div>
-                                <h6 class="mb-0 fw-bold small">{{ task.title }}</h6>
-                                <small class="text-muted">{{ task.project.name }}</small>
+                                <h6 class="mb-0 fw-bold small text-truncate" style="max-width: 120px;">{{ task.title }}</h6>
+                                <small class="text-muted" style="font-size: 10px;">{{ task.project.name }}</small>
                             </div>
                         </div>
-                        <span class="badge rounded-pill {% if task.status == 'DONE' %}bg-success{% elif task.status == 'IN_REVIEW' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                        <span class="badge rounded-pill {% if task.status == 'DONE' %}bg-success{% else %}bg-info{% endif %}" style="font-size: 9px;">
                             {{ task.get_status_display }}
                         </span>
                     </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-4">No recent tasks.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -178,7 +203,7 @@
                 plugins: {
                     legend: {
                         position: 'right',
-                        labels: { usePointStyle: true, padding: 20, font: { family: 'Plus Jakarta Sans', weight: '600' } }
+                        labels: { usePointStyle: true, padding: 20, font: { weight: '600' } }
                     }
                 }
             }
